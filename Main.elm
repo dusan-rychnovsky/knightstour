@@ -1,14 +1,29 @@
 import Html exposing (Html, div, img, text)
 import Html.Attributes exposing (src, style)
+import List exposing (map, repeat, range)
 
 main: Html msg
 main =
-  div [style [("position", "relative"), ("margin", "50px 0px 0px 50px")]] [
-    img [src "empty-board.png"] [],
-    div [style [("border", "2px blue solid"), ("width", "49px"), ("height", "49px"), ("position", "absolute"), ("left", "106px"), ("top", "106px")]] [],
-    img [src "knight.png", style [("position", "absolute"), ("left", "106px"), ("top", "106px")]] [],
-    div [style [("border", "2px purple solid"), ("width", "49px"), ("height", "49px"), ("position", "absolute"), ("left", "265px"), ("top", "212px")]] [],
-    div [style [("text-align", "center"), ("font-size", "46px"), ("width", "53px"), ("height", "53px"), ("position", "absolute"), ("left", "265px"), ("top", "212px")]] [text "1"],
-    div [style [("border", "2px purple solid"), ("width", "49px"), ("height", "49px"), ("position", "absolute"), ("left", "318px"), ("top", "318px")]] [],
-    div [style [("text-align", "center"), ("font-size", "46px"), ("width", "53px"), ("height", "53px"), ("position", "absolute"), ("left", "318px"), ("top", "318px")]] [text "2"]
-  ]
+  div [style [("position", "relative"), ("margin", "0px auto"), ("margin-top", "50px"), ("width", "424px"), ("height", "424px")]] viewFields
+
+viewFields: List (Html msg)
+viewFields =
+  let rows = List.range 0 7
+      cols = List.range 0 7
+  in
+    List.map viewField <| cart rows cols
+
+viewField: (Int,  Int) -> Html msg
+viewField (row, col) =
+  img [style [("position", "absolute"), ("top", toString (row * 53) ++ "px"), ("left", toString (col * 53) ++ "px")], src (fieldImg (row, col))] []
+
+fieldImg: (Int, Int) -> String
+fieldImg (row, col) =
+  if (row + col) % 2 == 0 then
+    "black-field.png"
+  else
+    "white-field.png"
+
+cart: List a -> List b -> List (a, b)
+cart xs ys =
+  List.concatMap (\x -> List.map (\y -> (x, y)) ys) xs
