@@ -8,12 +8,13 @@ import Debug exposing (log)
 
 main = Html.beginnerProgram { model = model, update = update, view = view }
 
-type alias Model = Maybe { row: Int, col: Int }
+type alias Pos = (Int, Int)
+type alias Model = Maybe Pos
 
 model: Model
 model = Nothing
 
-type Msg = FieldClicked (Int, Int)
+type Msg = FieldClicked Pos
 
 update: Msg -> Model -> Model
 update msg model =
@@ -36,7 +37,7 @@ boardCss = [
     height (px 424)
   ]
 
-fieldCss: (Int, Int) -> List Css.Mixin
+fieldCss: Pos -> List Css.Mixin
 fieldCss (row, col) = [
     position absolute,
     top (px <| toFloat (row * 53)),
@@ -54,7 +55,7 @@ viewFields =
   in
     map viewField <| cart rows cols
 
-viewField: (Int,  Int) -> Html Msg
+viewField: Pos -> Html Msg
 viewField coords =
   img [
     style (Css.asPairs (fieldCss coords)),
@@ -62,11 +63,11 @@ viewField coords =
     onClick (FieldClicked coords)
   ] []
 
-fieldImg: (Int, Int) -> String
+fieldImg: Pos -> String
 fieldImg coords =
   (fieldColor coords) ++ "-field.png"
 
-fieldColor: (Int, Int) -> String
+fieldColor: Pos -> String
 fieldColor (row, col) =
   if (row + col) % 2 == 0 then
     "black"
