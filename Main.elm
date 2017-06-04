@@ -49,9 +49,9 @@ viewFields =
     map viewField <| cart rows cols
 
 viewField: (Int,  Int) -> Html Msg
-viewField (row, col) =
+viewField coords =
   img [
-      style (Css.asPairs (fieldCss (row, col))), src (fieldImg (row, col))] []
+      style (Css.asPairs (fieldCss coords)), src (fieldImg coords)] []
 
 fieldImg: (Int, Int) -> String
 fieldImg coords =
