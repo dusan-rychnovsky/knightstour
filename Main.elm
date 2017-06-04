@@ -1,29 +1,63 @@
 import Html exposing (Html, div, img, text)
 import Html.Attributes exposing (src, style)
-import List exposing (map, repeat, range)
+import List exposing (map, concatMap, range)
+import Css exposing (position, absolute, relative, margin, auto, marginTop, px,
+  top, left, width, height)
 
 main: Html msg
-main =
-  div [style [("position", "relative"), ("margin", "0px auto"), ("margin-top", "50px"), ("width", "424px"), ("height", "424px")]] viewFields
+main = view
+
+-- ----------------------------------------------------------------------------
+-- View
+-- ----------------------------------------------------------------------------
+
+boardCss: List Css.Mixin
+boardCss = [
+    position relative,
+    margin auto,
+    marginTop (px 50),
+    width (px 424),
+    height (px 424)
+  ]
+
+fieldCss: (Int, Int) -> List Css.Mixin
+fieldCss (row, col) = [
+    position absolute,
+    top (px <| toFloat (row * 53)),
+    left (px <| toFloat (col * 53))
+  ]
+
+view: Html msg
+view =
+  div [style (Css.asPairs boardCss)] viewFields
 
 viewFields: List (Html msg)
 viewFields =
-  let rows = List.range 0 7
-      cols = List.range 0 7
+  let rows = range 0 7
+      cols = range 0 7
   in
-    List.map viewField <| cart rows cols
+    map viewField <| cart rows cols
 
 viewField: (Int,  Int) -> Html msg
 viewField (row, col) =
-  img [style [("position", "absolute"), ("top", toString (row * 53) ++ "px"), ("left", toString (col * 53) ++ "px")], src (fieldImg (row, col))] []
+  img [
+      style (Css.asPairs (fieldCss (row, col))), src (fieldImg (row, col))] []
 
 fieldImg: (Int, Int) -> String
-fieldImg (row, col) =
+fieldImg coords =
+  (fieldColor coords) ++ "-field.png"
+
+fieldColor: (Int, Int) -> String
+fieldColor (row, col) =
   if (row + col) % 2 == 0 then
-    "black-field.png"
+    "black"
   else
-    "white-field.png"
+    "white"
+
+-- ----------------------------------------------------------------------------
+-- Utils
+-- ----------------------------------------------------------------------------
 
 cart: List a -> List b -> List (a, b)
 cart xs ys =
-  List.concatMap (\x -> List.map (\y -> (x, y)) ys) xs
+  concatMap (\x -> map (\y -> (x, y)) ys) xs
