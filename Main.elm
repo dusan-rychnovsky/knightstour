@@ -4,8 +4,18 @@ import List exposing (map, concatMap, range)
 import Css exposing (position, absolute, relative, margin, auto, marginTop, px,
   top, left, width, height)
 
-main: Html msg
-main = view
+main = Html.beginnerProgram { model = model, update = update, view = view }
+
+type alias Model = Maybe { row: Int, col: Int }
+
+model: Model
+model = Nothing
+
+type Msg = FieldClicked (Int, Int)
+
+update: Msg -> Model -> Model
+update msg model =
+  model
 
 -- ----------------------------------------------------------------------------
 -- View
@@ -27,8 +37,8 @@ fieldCss (row, col) = [
     left (px <| toFloat (col * 53))
   ]
 
-view: Html msg
-view =
+view: Model -> Html msg
+view model =
   div [style (Css.asPairs boardCss)] viewFields
 
 viewFields: List (Html msg)
