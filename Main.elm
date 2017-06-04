@@ -1,7 +1,7 @@
 import Html exposing (Html, div, img, text)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (src, style)
-import List exposing (map, concatMap, range)
+import List
 import Css exposing (position, absolute, relative, margin, auto, marginTop, px,
   top, left, width, height)
 import Debug exposing (log)
@@ -19,17 +19,15 @@ type Msg = FieldClicked Pos
 update: Msg -> Model -> Model
 update msg model =
   case msg of
-    FieldClicked (row, col) ->
-      let _ = Debug.log "clicked" (row, col)
-      in
-        model
+    FieldClicked coords ->
+      Just coords
 
 -- ----------------------------------------------------------------------------
 -- View
 -- ----------------------------------------------------------------------------
 
-boardCss: List Css.Mixin
-boardCss = [
+canvasCss: List Css.Mixin
+canvasCss = [
     position relative,
     margin auto,
     marginTop (px 50),
@@ -37,8 +35,8 @@ boardCss = [
     height (px 424)
   ]
 
-fieldCss: Pos -> List Css.Mixin
-fieldCss (row, col) = [
+fieldPosCss: Pos -> List Css.Mixin
+fieldPosCss (row, col) = [
     position absolute,
     top (px <| toFloat (row * 53)),
     left (px <| toFloat (col * 53))
@@ -46,25 +44,33 @@ fieldCss (row, col) = [
 
 view: Model -> Html Msg
 view model =
-  div [style (Css.asPairs boardCss)] viewFields
+  viewCanvas <|
+    List.concat [
+      viewFields,
+      maybeToList (Maybe.map viewKnight model)
+    ]
+
+viewCanvas: List (Html Msg) -> Html Msg
+viewCanvas contents =
+  div [style (Css.asPairs (canvasCss))] contents
 
 viewFields: List (Html Msg)
 viewFields =
-  let rows = range 0 7
-      cols = range 0 7
+  let rows = List.range 0 7
+      cols = List.range 0 7
   in
-    map viewField <| cart rows cols
+    List.map viewField <| cart rows cols
 
 viewField: Pos -> Html Msg
 viewField coords =
   img [
-    style (Css.asPairs (fieldCss coords)),
-    src (fieldImg coords),
+    style (Css.asPairs (fieldPosCss coords)),
+    src (fieldImgSrc coords),
     onClick (FieldClicked coords)
   ] []
 
-fieldImg: Pos -> String
-fieldImg coords =
+fieldImgSrc: Pos -> String
+fieldImgSrc coords =
   (fieldColor coords) ++ "-field.png"
 
 fieldColor: Pos -> String
@@ -74,10 +80,23 @@ fieldColor (row, col) =
   else
     "white"
 
+viewKnight: Pos -> Html Msg
+viewKnight (row, col) =
+  img [
+    style (Css.asPairs (fieldPosCss (row, col))),
+    src ("knight.png")
+  ] []
+
 -- ----------------------------------------------------------------------------
 -- Utils
 -- ----------------------------------------------------------------------------
 
 cart: List a -> List b -> List (a, b)
 cart xs ys =
-  concatMap (\x -> map (\y -> (x, y)) ys) xs
+  List.concatMap (\x -> List.map (\y -> (x, y)) ys) xs
+
+maybeToList: Maybe a -> List a
+maybeToList m =
+  case m of
+    Just x -> [x]
+    Nothing -> []
