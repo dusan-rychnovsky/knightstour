@@ -3,7 +3,8 @@ import Html.Events exposing (onClick)
 import Html.Attributes exposing (src, style)
 import List
 import Css exposing (position, absolute, relative, margin, auto, marginTop, px,
-  top, left, width, height)
+  top, left, width, height, border3, solid)
+import Css.Colors exposing (blue, purple)
 import Debug exposing (log)
 
 main = Html.beginnerProgram { model = model, update = update, view = view }
@@ -42,12 +43,26 @@ fieldPosCss (row, col) = [
     left (px <| toFloat (col * 53))
   ]
 
+initFieldMarkCss: List Css.Mixin
+initFieldMarkCss = [
+    border3 (px 2) solid blue,
+    width (px 49),
+    height (px 49)
+  ]
+
+intermFieldMarkCss: List Css.Mixin
+intermFieldMarkCss = [
+    border3 (px 2) solid purple,
+    width (px 49),
+    height (px 49)
+  ]
+
 view: Model -> Html Msg
 view model =
   viewCanvas <|
     List.concat [
       viewFields,
-      maybeToList (Maybe.map viewKnight model)
+      maybeToList (Maybe.map viewInitFieldMark model)
     ]
 
 viewCanvas: List (Html Msg) -> Html Msg
@@ -81,10 +96,16 @@ fieldColor (row, col) =
     "white"
 
 viewKnight: Pos -> Html Msg
-viewKnight (row, col) =
+viewKnight coords =
   img [
-    style (Css.asPairs (fieldPosCss (row, col))),
+    style (Css.asPairs (fieldPosCss coords)),
     src ("knight.png")
+  ] []
+
+viewInitFieldMark: Pos -> Html Msg
+viewInitFieldMark coords =
+  div [
+    style (Css.asPairs <| List.concat [fieldPosCss coords, initFieldMarkCss])
   ] []
 
 -- ----------------------------------------------------------------------------
