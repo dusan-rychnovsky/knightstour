@@ -21,7 +21,9 @@ update: Msg -> Model -> Model
 update msg model =
   case msg of
     FieldClicked coords ->
-      Just coords
+      case model of
+        Nothing -> Just coords
+        Just _ -> model
 
 -- ----------------------------------------------------------------------------
 -- View
