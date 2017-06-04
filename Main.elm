@@ -37,18 +37,18 @@ fieldCss (row, col) = [
     left (px <| toFloat (col * 53))
   ]
 
-view: Model -> Html msg
+view: Model -> Html Msg
 view model =
   div [style (Css.asPairs boardCss)] viewFields
 
-viewFields: List (Html msg)
+viewFields: List (Html Msg)
 viewFields =
   let rows = range 0 7
       cols = range 0 7
   in
     map viewField <| cart rows cols
 
-viewField: (Int,  Int) -> Html msg
+viewField: (Int,  Int) -> Html Msg
 viewField (row, col) =
   img [
       style (Css.asPairs (fieldCss (row, col))), src (fieldImg (row, col))] []
