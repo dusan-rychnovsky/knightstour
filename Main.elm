@@ -1,8 +1,10 @@
 import Html exposing (Html, div, img, text)
+import Html.Events exposing (onClick)
 import Html.Attributes exposing (src, style)
 import List exposing (map, concatMap, range)
 import Css exposing (position, absolute, relative, margin, auto, marginTop, px,
   top, left, width, height)
+import Debug exposing (log)
 
 main = Html.beginnerProgram { model = model, update = update, view = view }
 
@@ -15,7 +17,11 @@ type Msg = FieldClicked (Int, Int)
 
 update: Msg -> Model -> Model
 update msg model =
-  model
+  case msg of
+    FieldClicked (row, col) ->
+      let _ = Debug.log "clicked" (row, col)
+      in
+        model
 
 -- ----------------------------------------------------------------------------
 -- View
@@ -51,7 +57,10 @@ viewFields =
 viewField: (Int,  Int) -> Html Msg
 viewField coords =
   img [
-      style (Css.asPairs (fieldCss coords)), src (fieldImg coords)] []
+    style (Css.asPairs (fieldCss coords)),
+    src (fieldImg coords),
+    onClick (FieldClicked coords)
+  ] []
 
 fieldImg: (Int, Int) -> String
 fieldImg coords =
