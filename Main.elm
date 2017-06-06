@@ -21,9 +21,28 @@ update: Msg -> Model -> Model
 update msg model =
   case msg of
     FieldClicked coords ->
+      let _= Debug.log "valid moves" (validMoves coords)
+      in
       case model of
         Nothing -> Just coords
         Just _ -> model
+
+validMoves: Pos -> List (Pos)
+validMoves coords =
+  let
+    offsets = [
+      (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2), (2, 1), (2, -1), (1, -2)
+    ]
+  in
+    List.map (addTuples coords) offsets
+    |> List.filter isValidPos
+
+isValidPos: Pos -> Bool
+isValidPos (x, y) =
+  x >= 0 && x < 8 && y >= 0 && y < 8
+
+addTuples: (Int, Int) -> (Int, Int) -> (Int, Int)
+addTuples (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 
 -- ----------------------------------------------------------------------------
 -- View
