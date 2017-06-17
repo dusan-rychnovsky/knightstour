@@ -5,26 +5,36 @@ import List
 import Css exposing (position, absolute, relative, margin, auto, marginTop, px,
   top, left, width, height, border3, solid)
 import Css.Colors exposing (blue, purple)
+import Time exposing (Time, second)
 import Debug exposing (log)
 
-main = Html.beginnerProgram { model = model, update = update, view = view }
+main = Html.program {
+    init = init,
+    update = update,
+    view = view,
+    subscriptions = subscriptions
+  }
 
 type alias Pos = (Int, Int)
 type alias Tour = { turn: Int, steps: List Pos }
 type alias Model = Maybe Tour
 
-model: Model
-model = Nothing
+init: (Model, Cmd Msg)
+init = Nothing ! []
 
-type Msg = FieldClicked Pos
+type Msg =
+  FieldClicked Pos |
+  Tick Time
 
-update: Msg -> Model -> Model
+update: Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     FieldClicked coords ->
       case model of
-        Nothing -> Just { turn = 5, steps = [ coords, (0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5) ] }
-        Just _ -> model
+        Nothing -> Just { turn = 5, steps = [ coords, (0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5) ] } ! []
+        Just _ -> model ! []
+    Tick time ->
+      model ! []
 
 validMoves: Pos -> List (Pos)
 validMoves coords =
@@ -42,6 +52,12 @@ isValidPos (x, y) =
 
 addTuples: (Int, Int) -> (Int, Int) -> (Int, Int)
 addTuples (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
+
+subscriptions: Model -> Sub Msg
+subscriptions model =
+  case model of
+    Nothing -> Sub.none
+    Just _ -> Time.every second Tick
 
 -- ----------------------------------------------------------------------------
 -- View
