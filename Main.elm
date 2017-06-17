@@ -10,7 +10,8 @@ import Debug exposing (log)
 main = Html.beginnerProgram { model = model, update = update, view = view }
 
 type alias Pos = (Int, Int)
-type alias Model = Maybe Pos
+type alias Tour = { turn: Int, steps: List Pos }
+type alias Model = Maybe Tour
 
 model: Model
 model = Nothing
@@ -21,10 +22,8 @@ update: Msg -> Model -> Model
 update msg model =
   case msg of
     FieldClicked coords ->
-      let _= Debug.log "valid moves" (validMoves coords)
-      in
       case model of
-        Nothing -> Just coords
+        Nothing -> Just { turn = 0, steps = [ coords ] }
         Just _ -> model
 
 validMoves: Pos -> List (Pos)
@@ -83,7 +82,7 @@ view model =
   viewCanvas <|
     List.concat [
       viewFields,
-      maybeToList (Maybe.map viewInitFieldMark model)
+      maybeToFlatList (Maybe.map viewTour model)
     ]
 
 viewCanvas: List (Html Msg) -> Html Msg
@@ -116,6 +115,11 @@ fieldColor (row, col) =
   else
     "white"
 
+viewTour: Tour -> List (Html Msg)
+viewTour tour =
+  maybeToList (Maybe.map viewKnight (List.head tour.steps)) ++
+  maybeToList (Maybe.map viewInitFieldMark (List.head tour.steps))
+
 viewKnight: Pos -> Html Msg
 viewKnight coords =
   img [
@@ -141,4 +145,10 @@ maybeToList: Maybe a -> List a
 maybeToList m =
   case m of
     Just x -> [x]
+    Nothing -> []
+
+maybeToFlatList: Maybe (List a) -> List a
+maybeToFlatList m =
+  case m of
+    Just x -> x
     Nothing -> []
