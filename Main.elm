@@ -31,10 +31,18 @@ update msg model =
   case msg of
     FieldClicked coords ->
       case model of
-        Nothing -> Just { turn = 5, steps = [ coords, (0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5) ] } ! []
+        Nothing -> Just { turn = 0, steps = [ coords, (0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5) ] } ! []
         Just _ -> model ! []
     Tick time ->
-      model ! []
+      case model of
+        Nothing -> model ! []
+        Just { turn, steps } ->
+          let
+            newTurn =
+              if turn < (List.length steps) - 1 then turn + 1
+              else turn
+          in
+            Just { turn = newTurn, steps = steps } ! []
 
 validMoves: Pos -> List (Pos)
 validMoves coords =
