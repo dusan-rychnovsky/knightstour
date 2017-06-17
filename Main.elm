@@ -23,7 +23,7 @@ update msg model =
   case msg of
     FieldClicked coords ->
       case model of
-        Nothing -> Just { turn = 0, steps = [ coords ] }
+        Nothing -> Just { turn = 5, steps = [ coords, (0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5) ] }
         Just _ -> model
 
 validMoves: Pos -> List (Pos)
@@ -116,9 +116,13 @@ fieldColor (row, col) =
     "white"
 
 viewTour: Tour -> List (Html Msg)
-viewTour tour =
-  maybeToList (Maybe.map viewKnight (List.head tour.steps)) ++
-  maybeToList (Maybe.map viewInitFieldMark (List.head tour.steps))
+viewTour tour = viewSteps (List.take (tour.turn + 1) tour.steps)
+
+viewSteps: List Pos -> List (Html Msg)
+viewSteps steps =
+  maybeToList (Maybe.map viewInitFieldMark (List.head steps)) ++
+  viewIntermFieldMarks (List.drop 1 steps) ++
+  maybeToList (Maybe.map viewKnight (last steps))
 
 viewKnight: Pos -> Html Msg
 viewKnight coords =
@@ -131,6 +135,16 @@ viewInitFieldMark: Pos -> Html Msg
 viewInitFieldMark coords =
   div [
     style (Css.asPairs <| List.concat [fieldPosCss coords, initFieldMarkCss])
+  ] []
+
+viewIntermFieldMarks: List Pos -> List (Html Msg)
+viewIntermFieldMarks steps =
+  List.map viewIntermFieldMark steps
+
+viewIntermFieldMark: Pos -> Html Msg
+viewIntermFieldMark coords =
+  div [
+    style (Css.asPairs <| List.concat [fieldPosCss coords, intermFieldMarkCss])
   ] []
 
 -- ----------------------------------------------------------------------------
@@ -152,3 +166,6 @@ maybeToFlatList m =
   case m of
     Just x -> x
     Nothing -> []
+
+last : List a -> Maybe a
+last = List.foldl (\x acc -> Just x) Nothing
