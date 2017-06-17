@@ -31,7 +31,7 @@ update msg model =
   case msg of
     FieldClicked coords ->
       case model of
-        Nothing -> Just { turn = 0, steps = [ coords, (0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5) ] } ! []
+        Nothing -> Just { turn = 0, steps = solve coords } ! []
         Just _ -> model ! []
     Tick time ->
       case model of
@@ -43,6 +43,40 @@ update msg model =
               else turn
           in
             Just { turn = newTurn, steps = steps } ! []
+
+solve: Pos -> List Pos
+solve coords = get (solve2 coords []) "No solution found!"
+
+solve2: Pos -> List Pos -> Maybe (List Pos)
+solve2 coords steps =
+  if (isFinal steps) then Just steps
+  else
+    let newSteps = List.append steps [coords]
+    in
+      moves coords steps
+      |> List.sortWith (compareNumOfNextMoves newSteps)
+      |> List.map (\move -> solve2 move newSteps)
+      |> List.foldl (\sol acc ->
+            case acc of
+              Just _ -> acc
+              Nothing -> sol
+          ) Nothing
+
+compareNumOfNextMoves: List Pos -> Pos -> Pos -> Order
+compareNumOfNextMoves steps first second =
+  let
+    numFirstMoves = List.length (moves first steps)
+    numSecondMoves = List.length (moves second steps)
+  in
+    compare numFirstMoves numSecondMoves
+
+isFinal: List Pos -> Bool
+isFinal steps =
+  (List.length steps) == 64
+
+moves: Pos -> List Pos -> List Pos
+moves coords steps =
+  List.filter (\move -> not (List.member move steps)) (validMoves coords)
 
 validMoves: Pos -> List (Pos)
 validMoves coords =
@@ -193,3 +227,17 @@ maybeToFlatList m =
 
 last : List a -> Maybe a
 last = List.foldl (\x acc -> Just x) Nothing
+
+find: (a -> Bool) -> List a -> Maybe a
+find p list =
+  case list of
+    [] -> Nothing
+    x::xs ->
+      if p x then Just x
+      else find p xs
+
+get: Maybe a -> String -> a
+get m err =
+  case m of
+    Nothing -> Debug.crash err
+    Just x -> x
