@@ -55,12 +55,16 @@ solve2 coords steps =
     in
       moves coords steps
       |> List.sortWith (compareNumOfNextMoves newSteps)
-      |> List.map (\move -> solve2 move newSteps)
-      |> List.foldl (\sol acc ->
-            case acc of
-              Just _ -> acc
-              Nothing -> sol
-          ) Nothing
+      |> first (\move -> solve2 move newSteps)
+
+first: (a -> Maybe b) -> List a -> Maybe b
+first f list =
+  case list of
+    [] -> Nothing
+    x::xs ->
+      case (f x) of
+        Just y -> Just y
+        Nothing -> first f xs
 
 compareNumOfNextMoves: List Pos -> Pos -> Pos -> Order
 compareNumOfNextMoves steps first second =
