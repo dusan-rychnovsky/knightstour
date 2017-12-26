@@ -5,7 +5,7 @@ import List
 import Css exposing (position, absolute, relative, margin, auto, marginTop, px,
   top, left, width, height, border3, solid)
 import Css.Colors exposing (blue, purple)
-import Time exposing (Time, second)
+import Time exposing (Time, millisecond)
 import Debug exposing (log)
 
 main = Html.program {
@@ -15,12 +15,13 @@ main = Html.program {
     subscriptions = subscriptions
   }
 
-type alias Pos = (Int, Int)
+type alias Board = { width: Int, height: Int }
+type alias Pos = { col: Int, row: Int }
 type alias Tour = { turn: Int, steps: List Pos }
-type alias Model = Maybe Tour
+type alias Model = { board: Board, tour: Maybe Tour }
 
 init: (Model, Cmd Msg)
-init = Nothing ! []
+init = { board = { width = 8, height = 8 }, tour = Nothing } ! []
 
 type Msg =
   FieldClicked Pos |
@@ -30,11 +31,11 @@ update: Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     FieldClicked coords ->
-      case model of
-        Nothing -> Just { turn = 0, steps = solve coords } ! []
+      case model.tour of
+        Nothing -> { model | tour = Just { turn = 0, steps = solve model.board coords }} ! []
         Just _ -> model ! []
     Tick time ->
-      case model of
+      case model.tour of
         Nothing -> model ! []
         Just { turn, steps } ->
           let
@@ -42,20 +43,20 @@ update msg model =
               if turn < (List.length steps) - 1 then turn + 1
               else turn
           in
-            Just { turn = newTurn, steps = steps } ! []
+            { model | tour = Just { turn = newTurn, steps = steps }} ! []
 
-solve: Pos -> List Pos
-solve coords = get (solve2 coords []) "No solution found!"
+solve: Board -> Pos -> List Pos
+solve board coords = get (solve2 board coords []) "No solution found!"
 
-solve2: Pos -> List Pos -> Maybe (List Pos)
-solve2 coords steps =
-  if (isFinal steps) then Just steps
-  else
-    let newSteps = List.append steps [coords]
-    in
-      moves coords steps
-      |> List.sortWith (compareNumOfNextMoves newSteps)
-      |> first (\move -> solve2 move newSteps)
+solve2: Board -> Pos -> List Pos -> Maybe (List Pos)
+solve2 board coords steps =
+  let newSteps = List.append steps [coords]
+  in
+    if (isFinal board newSteps) then Just newSteps
+    else
+      moves board coords steps
+      |> List.sortWith (compareNumOfNextMoves board newSteps)
+      |> first (\move -> solve2 board move newSteps)
 
 first: (a -> Maybe b) -> List a -> Maybe b
 first f list =
@@ -66,44 +67,54 @@ first f list =
         Just y -> Just y
         Nothing -> first f xs
 
-compareNumOfNextMoves: List Pos -> Pos -> Pos -> Order
-compareNumOfNextMoves steps first second =
+compareNumOfNextMoves: Board -> List Pos -> Pos -> Pos -> Order
+compareNumOfNextMoves board steps first second =
   let
-    numFirstMoves = List.length (moves first steps)
-    numSecondMoves = List.length (moves second steps)
+    numFirstMoves = List.length (moves board first steps)
+    numSecondMoves = List.length (moves board second steps)
   in
     compare numFirstMoves numSecondMoves
 
-isFinal: List Pos -> Bool
-isFinal steps =
-  (List.length steps) == 64
+isFinal: Board -> List Pos -> Bool
+isFinal board steps =
+  (List.length steps) == size board
 
-moves: Pos -> List Pos -> List Pos
-moves coords steps =
-  List.filter (\move -> not (List.member move steps)) (validMoves coords)
+size: Board -> Int
+size { width, height} = width * height
 
-validMoves: Pos -> List (Pos)
-validMoves coords =
+moves: Board -> Pos -> List Pos -> List Pos
+moves board coords steps =
+  List.filter (\move -> not (List.member move steps)) (validMoves board coords)
+
+validMoves: Board -> Pos -> List (Pos)
+validMoves board coords =
   let
     offsets = [
-      (-1, -2), (-2, -1), (-2, 1), (-1, 2), (1, 2), (2, 1), (2, -1), (1, -2)
+      { col = -2, row = -1},
+      { col = -1, row = -2},
+      { col =  1, row = -2},
+      { col =  2, row = -1},
+      { col =  2, row =  1},
+      { col =  1, row =  2},
+      { col = -1, row =  2},
+      { col = -2, row =  1}
     ]
   in
-    List.map (addTuples coords) offsets
-    |> List.filter isValidPos
+    List.map (applyOffset coords) offsets
+    |> List.filter (isValidPos board)
 
-isValidPos: Pos -> Bool
-isValidPos (x, y) =
-  x >= 0 && x < 8 && y >= 0 && y < 8
+isValidPos: Board -> Pos -> Bool
+isValidPos { width, height } { col, row } =
+  col >= 0 && col < width && row >= 0 && row < height
 
-addTuples: (Int, Int) -> (Int, Int) -> (Int, Int)
-addTuples (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
+applyOffset: Pos -> Pos -> Pos
+applyOffset pos offset = { col = pos.col + offset.col, row = pos.row + offset.row }
 
 subscriptions: Model -> Sub Msg
 subscriptions model =
-  case model of
+  case model.tour of
     Nothing -> Sub.none
-    Just _ -> Time.every second Tick
+    Just _ -> Time.every (500 * millisecond) Tick
 
 -- ----------------------------------------------------------------------------
 -- View
@@ -119,7 +130,7 @@ canvasCss = [
   ]
 
 fieldPosCss: Pos -> List Css.Mixin
-fieldPosCss (row, col) = [
+fieldPosCss { col, row } = [
     position absolute,
     top (px <| toFloat (row * 53)),
     left (px <| toFloat (col * 53))
@@ -143,20 +154,23 @@ view: Model -> Html Msg
 view model =
   viewCanvas <|
     List.concat [
-      viewFields,
-      maybeToFlatList (Maybe.map viewTour model)
+      viewFields model.board,
+      maybeToFlatList (Maybe.map viewTour model.tour)
     ]
 
 viewCanvas: List (Html Msg) -> Html Msg
 viewCanvas contents =
   div [style (Css.asPairs (canvasCss))] contents
 
-viewFields: List (Html Msg)
-viewFields =
-  let rows = List.range 0 7
-      cols = List.range 0 7
+viewFields: Board -> List (Html Msg)
+viewFields board =
+  let rows = List.range 0 (board.height - 1)
+      cols = List.range 0 (board.width - 1)
   in
-    List.map viewField <| cart rows cols
+    List.map viewField <| List.map toPos <| cart cols rows
+
+toPos: (Int, Int) -> Pos
+toPos (col, row) = { col = col, row = row }
 
 viewField: Pos -> Html Msg
 viewField coords =
@@ -171,7 +185,7 @@ fieldImgSrc coords =
   (fieldColor coords) ++ "-field.png"
 
 fieldColor: Pos -> String
-fieldColor (row, col) =
+fieldColor { col, row } =
   if (row + col) % 2 == 0 then
     "black"
   else
