@@ -1,7 +1,10 @@
 package cz.dusanrychnovsky.knightstour;
 
+import cz.dusanrychnovsky.knightstour.Board.Position;
+
 import java.util.*;
 
+import static cz.dusanrychnovsky.knightstour.Util.check;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Comparator.comparingInt;
@@ -9,23 +12,40 @@ import static java.util.Comparator.comparingInt;
 public class Main {
   
   public static void main(String[] args) {
-    System.out.println(new Strategy().getTour(new Position(0, 0)).get());
+
+    Strategy strategy = new Strategy(new Board(4, 3));
+    Optional<Tour> tour = strategy.getTour(0, 0);
+
+    if (tour.isPresent()) {
+      System.out.println("TOUR:");
+      System.out.println(tour.get());
+    }
+    else {
+      System.out.println("TOUR DOES NOT EXIST.");
+    }
   }
   
   static class Strategy {
-    public Optional<Situation> getTour(Position from) {
-      return getTour(new Situation(from));
+
+    private final Board board;
+
+    public Strategy(Board board) {
+      this.board = board;
+    }
+
+    public Optional<Tour> getTour(int row, int col) {
+      return getTour(new Tour(board, board.getPosition(row, col)));
     }
   
-    private Optional<Situation> getTour(Situation situation) {
-      if (situation.isFinal()) {
-        return Optional.of(situation);
+    private Optional<Tour> getTour(Tour tour) {
+      if (tour.isFinished()) {
+        return Optional.of(tour);
       }
       else {
-        Set<Position> moves = situation.getValidMoves();
-        List<Position> sortedMoves = sort(moves, situation);
+        Set<Position> moves = tour.getValidMoves();
+        List<Position> sortedMoves = sort(moves, tour);
         for (Position move : sortedMoves) {
-          Optional<Situation> subResult = getTour(situation.applyMove(move));
+          Optional<Tour> subResult = getTour(tour.applyMove(move));
           if (subResult.isPresent()) {
             return subResult;
           }
@@ -34,39 +54,41 @@ public class Main {
       }
     }
   
-    private static List<Position> sort(Set<Position> moves, Situation situation) {
+    private static List<Position> sort(Set<Position> moves, Tour tour) {
       List<Position> list = new ArrayList<>(moves);
       list.sort(comparingInt(
-        position -> situation.applyMove(position).getValidMoves().size())
+        position -> tour.applyMove(position).getValidMoves().size())
       );
       return list;
     }
   }
   
-  static class Situation {
-  
-    private final List<Position> moves;
+  static class Tour {
+
+    private final Board board;
+    private final List<Position> steps;
     
-    public Situation(List<Position> moves) {
-      check(!moves.isEmpty(), "Empty situations are not supported.");
-      this.moves = new ArrayList<>();
-      for (Position move : moves) {
-        check(!this.moves.contains(move), "Multiple steps on field [" + move + "] are not supported");
-        this.moves.add(move);
+    public Tour(Board board, List<Position> steps) {
+      check(!steps.isEmpty(), "Empty situations are not supported.");
+      this.board = board;
+      this.steps = new ArrayList<>();
+      for (Position step : steps) {
+        check(!this.steps.contains(step), "Multiple steps on field [" + step + "] are not supported.");
+        this.steps.add(step);
       }
     }
     
-    public Situation(Position... moves) {
-      this(asList(moves));
+    public Tour(Board board, Position... steps) {
+      this(board, asList(steps));
     }
   
-    public boolean isFinal() {
-      return moves.size() == 64;
+    public boolean isFinished() {
+      return steps.size() == board.getSize();
     }
     
     public Set<Position> getValidMoves() {
       Set<Position> result = new HashSet<>();
-      for (Position move : Position.getValidMoves(getLastMove())) {
+      for (Position move : board.getValidMoves(getLastStep())) {
         if (isValidMove(move)) {
           result.add(move);
         }
@@ -75,15 +97,15 @@ public class Main {
     }
   
     private boolean isValidMove(Position move) {
-      return !moves.contains(move);
+      return !steps.contains(move);
     }
   
-    private Position getLastMove() {
-      return moves.get(moves.size() - 1);
+    private Position getLastStep() {
+      return steps.get(steps.size() - 1);
     }
   
-    public Situation applyMove(Position pos) {
-      return new Situation(concat(moves, pos));
+    public Tour applyMove(Position move) {
+      return new Tour(board, concat(steps, move));
     }
   
     private static <T> List<T> concat(List<T> list, T item) {
@@ -96,8 +118,8 @@ public class Main {
     private Map<Position, Integer> asMap() {
       Map<Position, Integer> result = new HashMap<>();
       int i = 1;
-      for (Position move : moves) {
-        result.put(move, i);
+      for (Position step : steps) {
+        result.put(step, i);
         i++;
       }
       return result;
@@ -105,23 +127,23 @@ public class Main {
     
     @Override
     public int hashCode() {
-      return moves.hashCode();
+      return steps.hashCode();
     }
   
     @Override
     public boolean equals(Object obj) {
       return
-        obj instanceof Situation &&
-        moves.equals(((Situation) obj).moves);
+        obj instanceof Tour &&
+        steps.equals(((Tour) obj).steps);
     }
   
     @Override
     public String toString() {
       Map<Position, Integer> map = asMap();
       StringBuilder builder = new StringBuilder();
-      for (int row = 0; row < 8; row++) {
-        for (int col = 0; col < 8; col++) {
-          Integer turn = map.get(new Position(row, col));
+      for (int row = 0; row < board.getHeight(); row++) {
+        for (int col = 0; col < board.getWidth(); col++) {
+          Integer turn = map.get(board.getPosition(row, col));
           if (turn != null) {
             builder.append(format("%1$3s", turn));
           } else {
@@ -131,84 +153,6 @@ public class Main {
         builder.append("\n");
       }
       return builder.toString();
-    }
-  }
-  
-  static class Position {
-  
-    private static final List<Offset> OFFSETS = asList(
-      new Offset(-2, -1),
-      new Offset(-1, -2),
-      new Offset(+1, -2),
-      new Offset(+2, -1),
-      new Offset(+2, +1),
-      new Offset(+1, +2),
-      new Offset(-1, +2),
-      new Offset(-2, +1)
-    );
-    
-    private final int row;
-    private final int col;
-    
-    public Position(int row, int col) {
-      check(row >= 0 && row < 8, "Expected 0 <= row < 8, got [" + row + "]");
-      check(col >= 0 && col < 8, "Expected 0 <= col < 8, got [" + col + "]");
-      this.row = row;
-      this.col = col;
-    }
-    
-    public static Set<Position> getValidMoves(Position from) {
-      Set<Position> result = new HashSet<>();
-      for (Offset offset : OFFSETS) {
-        int newRow = from.row + offset.row;
-        int newCol = from.col + offset.col;
-        if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
-          result.add(new Position(newRow, newCol));
-        }
-      }
-      return result;
-    }
-
-    @Override
-    public int hashCode() {
-      return row + col;
-    }
-  
-    @Override
-    public boolean equals(Object obj) {
-      return
-        obj instanceof Position &&
-        ((Position) obj).row == row &&
-        ((Position) obj).col == col;
-    }
-
-    public String toString() {
-      return "[" + row + ", " + col + "]";
-    }
-  }
-  
-  static class Offset {
-    
-    private final int row;
-    private final int col;
-    
-    public Offset(int row, int col) {
-      this.row = row;
-      this.col = col;
-    }
-    
-    public int getRow() {
-      return row;
-    }
-    
-    public int getCol() {
-      return col;
-    }
-  }
-  
-  private static void check(boolean cond, String message) {
-    if (!cond) {
-      throw new AssertionError(message);
     }
   }
 }
