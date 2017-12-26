@@ -3,7 +3,7 @@ import Html.Events exposing (onClick)
 import Html.Attributes exposing (src, style)
 import List
 import Css exposing (position, absolute, relative, margin, auto, marginTop, px,
-  top, left, width, height, border3, solid)
+  top, left, width, height, border3, solid, textAlign, fontSize, center)
 import Css.Colors exposing (blue, purple)
 import Time exposing (Time, millisecond)
 import Debug exposing (log)
@@ -150,6 +150,14 @@ intermFieldMarkCss = [
     height (px 49)
   ]
 
+stepCounterCss: List Css.Mixin
+stepCounterCss = [
+    textAlign center,
+    fontSize (px 46),
+    width (px 53),
+    height (px 53)
+  ]
+
 view: Model -> Html Msg
 view model =
   viewCanvas <|
@@ -198,7 +206,20 @@ viewSteps: List Pos -> List (Html Msg)
 viewSteps steps =
   maybeToList (Maybe.map viewInitFieldMark (List.head steps)) ++
   viewIntermFieldMarks (List.drop 1 steps) ++
-  maybeToList (Maybe.map viewKnight (last steps))
+  maybeToList (Maybe.map viewKnight (last steps)) ++
+  viewStepCounters (front steps)
+
+viewStepCounters: List Pos -> List (Html Msg)
+viewStepCounters steps =
+  List.indexedMap viewStepCounter steps
+
+viewStepCounter: Int -> Pos -> Html Msg
+viewStepCounter idx coords =
+  let step = idx + 1
+  in
+    div [
+      style (Css.asPairs <| List.concat [fieldPosCss coords, stepCounterCss])
+    ] [ text (toString step) ]
 
 viewKnight: Pos -> Html Msg
 viewKnight coords =
@@ -243,8 +264,14 @@ maybeToFlatList m =
     Just x -> x
     Nothing -> []
 
-last : List a -> Maybe a
+last: List a -> Maybe a
 last = List.foldl (\x acc -> Just x) Nothing
+
+front: List a -> List a
+front list =
+  case list of
+    x::y::xs -> x :: (front (y::xs))
+    _ -> []
 
 find: (a -> Bool) -> List a -> Maybe a
 find p list =
