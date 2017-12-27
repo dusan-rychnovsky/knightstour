@@ -1,3 +1,5 @@
+module Main exposing (..)
+
 import Html exposing (Html, div, img, text)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (src, style)
@@ -83,11 +85,11 @@ size: Board -> Int
 size { width, height} = width * height
 
 moves: Board -> Pos -> List Pos -> List Pos
-moves board coords steps =
-  List.filter (\move -> not (List.member move steps)) (validMoves board coords)
+moves board pos tour =
+  List.filter (\move -> not (List.member move tour)) (validMoves board pos)
 
 validMoves: Board -> Pos -> List (Pos)
-validMoves board coords =
+validMoves board pos =
   let
     offsets = [
       { col = -2, row = -1},
@@ -100,7 +102,7 @@ validMoves board coords =
       { col = -2, row =  1}
     ]
   in
-    List.map (applyOffset coords) offsets
+    List.map (applyOffset pos) offsets
     |> List.filter (isValidPos board)
 
 isValidPos: Board -> Pos -> Bool
